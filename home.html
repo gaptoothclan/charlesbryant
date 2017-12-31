@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Charles Bryant</title>
+
+<script type="text/javascript" src="https://ajax.cloudflare.com/cdn-cgi/scripts/9014afdb/cloudflare-static/rocket.min.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Raleway:100,600" rel="stylesheet" type="text/css">
+
+    <!-- Styles -->
+    <style>
+        html, body {
+            background-color: #fff;
+            color: #636b6f;
+            font-family: 'Raleway', sans-serif;
+            font-weight: 100;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .full-height {
+            height: 100vh;
+        }
+
+        .flex-center {
+            align-items: center;
+            display: flex;
+            justify-content: center;
+        }
+
+        .position-ref {
+            position: relative;
+        }
+
+        .top-right {
+            position: absolute;
+            right: 10px;
+            top: 18px;
+        }
+
+        .content {
+            text-align: center;
+        }
+
+        .title {
+            font-size: 84px;
+        }
+
+        .links > a {
+            color: #636b6f;
+            padding: 0 25px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .1rem;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        .m-b-md {
+            margin-bottom: 30px;
+        }
+
+        .player-icon {
+            position:absolute;
+            width:20px;
+            height:20px;
+            display: block;
+            -moz-border-radius: 10px;
+            -webkit-border-radius: 10px;
+            border-radius: 10px; /* future proofing */
+            -khtml-border-radius: 10px; /* for old Konqueror browsers */
+        }
+    </style>
+</head>
+<body>
+<div class="flex-center position-ref full-height" id="arena">
+
+    <div class="content">
+        <div class="title m-b-md">
+            Charles Bryant
+        </div>
+    </div>
+</div>
+
+
+<script>
+let conn;
+let arena = document.getElementById("arena");
+
+function makeid() {
+  var text = "";
+  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  for (var i = 0; i < 5; i++){
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+
+  return text;
+}
+
+function drawPlayer(player) {
+    // Does player exist, either add or update position
+    const playerIcon = document.getElementById(player.id);
+    const coords = calcCoords(player)
+    if (playerIcon !== null) {
+        // update
+        playerIcon.style.top = `${coords.y}px`;
+        playerIcon.style.left = `${coords.x}px`;
+        playerIcon.style.backgroundColor = `#${player.color}`;
+    } else {
+        // Do a fade in?
+        const newIcon = document.createElement("div");
+        newIcon.setAttribute("id", player.id);
+        newIcon.setAttribute("class", "player-icon");
+        newIcon.style.top = `${coords.y}px`;
+        newIcon.style.left = `${coords.x}px`;
+        newIcon.style.backgroundColor = `#${player.color}`;
+        arena.appendChild(newIcon);
+    }
+}
+
+function deletePlayer(player) {
+    const playerIcon = document.getElementById(player.id);
+    if (playerIcon !== null){
+        // Do a fade out?
+        playerIcon.parentNode.removeChild(playerIcon);
+    }
+}
+
+function calcCoords(player) {
+    const width = Math.floor(arena.offsetWidth / 2);
+    const height = Math.floor(arena.offsetHeight / 2);
+    
+    return {
+        x: width + player.x,
+        y: height + player.y,
+    }
+}
+
+const colors = [
+    "FF0000",
+    "E2571E",
+    "FF7F00",
+    "FFFF00",
+    "00FF00",
+    "96bf33",
+    "0000FF",
+    "4B0082",
+    "8B00FF",
+];
+const player = {
+    id: makeid(),
+    color: colors[Math.floor(Math.random() * colors.length)],
+    x: 0,
+    y: 0
+};
+
+drawPlayer(player);
+
+
+if (window["WebSocket"]) {
+    conn = new WebSocket("ws://" + document.location.host + "/ws");
+    conn.onclose = function (evt) {
+        console.log("Connection closed")
+    };
+    conn.onmessage = function (evt) {
+        var messages = evt.data.split('\n');
+        for (var i = 0; i < messages.length; i++) {
+            const json = JSON.parse(messages[i]);
+            if (json.delete === true){
+                deletePlayer(json);
+            } else {
+                drawPlayer(json);
+            }
+        }
+    };
+    conn.onopen = function (){
+        conn.send(JSON.stringify(player))
+    }
+}
+
+// may aswell go for mouse move eventually
+document.onkeydown = function(e) {
+    switch (e.keyCode) {
+        case 37:
+            player.x -= 5;
+            break;
+        case 38:
+            player.y -= 5;
+            break;
+        case 39:
+            player.x += 5;
+            break;
+        case 40:
+            player.y += 5;
+            break;
+    }
+    drawPlayer(player);
+    conn.send(JSON.stringify(player));
+};
+
+// only redraw external players
+
+
+// pick a random color
+// bind keys
+// on key press update position
+</script>
+</body>
+</html>
